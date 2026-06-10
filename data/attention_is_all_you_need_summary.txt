@@ -1,0 +1,91 @@
+Attention Is All You Need — Condensed Summary for RAG Testing
+Vaswani et al., 2017 (NeurIPS)
+
+ABSTRACT
+The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best-performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. Experiments on two machine translation tasks show these models to be superior in quality while being more parallelizable and requiring significantly less time to train.
+
+1. INTRODUCTION
+Recurrent neural networks, long short-term memory (LSTM) and gated recurrent neural networks (GRU) in particular, have been firmly established as state-of-the-art approaches in sequence modeling and transduction problems. Numerous efforts have since continued to push the boundaries of recurrent language models and encoder-decoder architectures.
+
+Recurrent models factor computation along the symbol positions of the input and output sequences. Aligning the positions to steps in computation time, they generate a sequence of hidden states h_t, as a function of the previous hidden state h_{t-1} and the input for position t.
+
+This inherently sequential nature precludes parallelization within training examples, which becomes critical at longer sequence lengths, as memory constraints limit batching across examples.
+
+The Transformer avoids recurrence and instead relies entirely on an attention mechanism to draw global dependencies between input and output.
+
+2. MODEL ARCHITECTURE
+The Transformer follows an encoder-decoder structure. The encoder maps an input sequence of symbol representations (x_1, ..., x_n) to a sequence of continuous representations z = (z_1, ..., z_n). Given z, the decoder generates an output sequence (y_1, ..., y_m) of symbols, one element at a time.
+
+2.1 Encoder
+The encoder is composed of a stack of N = 6 identical layers. Each layer has two sub-layers:
+(1) A multi-head self-attention mechanism.
+(2) A simple, position-wise fully connected feed-forward network.
+Residual connections are employed around each of the two sub-layers, followed by layer normalization.
+
+2.2 Decoder
+The decoder is also composed of a stack of N = 6 identical layers. In addition to the two sub-layers in each encoder layer, the decoder inserts a third sub-layer that performs multi-head attention over the output of the encoder stack.
+
+2.3 Attention
+An attention function maps a query and a set of key-value pairs to an output. The output is computed as a weighted sum of the values, where the weight assigned to each value is computed by a compatibility function of the query with the corresponding key.
+
+SCALED DOT-PRODUCT ATTENTION:
+Attention(Q, K, V) = softmax(QK^T / sqrt(d_k)) * V
+
+We divide by sqrt(d_k) to counteract the effect of the dot products growing large in magnitude.
+
+MULTI-HEAD ATTENTION:
+MultiHead(Q, K, V) = Concat(head_1, ..., head_h) * W^O
+where head_i = Attention(Q * W_i^Q, K * W_i^K, V * W_i^V)
+
+This allows the model to jointly attend to information from different representation subspaces at different positions. In this work, h = 8 parallel attention layers.
+
+2.4 Position-wise Feed-Forward Networks
+FFN(x) = max(0, xW_1 + b_1)W_2 + b_2
+
+Each sub-layer applies a linear transformation with dimensionality d_model = 512, with inner-layer d_ff = 2048.
+
+2.5 Positional Encoding
+Since the Transformer contains no recurrence, positional encodings are added to the input embeddings to inject sequence order information:
+PE(pos, 2i)   = sin(pos / 10000^(2i/d_model))
+PE(pos, 2i+1) = cos(pos / 10000^(2i/d_model))
+
+3. WHY SELF-ATTENTION?
+Three desiderata motivate self-attention over recurrence and convolutions:
+(1) Total computational complexity per layer.
+(2) Amount of computation that can be parallelized.
+(3) Path length between long-range dependencies.
+Self-attention layers connect all positions with O(1) operations, while recurrent layers require O(n) sequential operations.
+
+4. TRAINING
+Dataset: WMT 2014 English-German (4.5M sentence pairs) and English-French (36M sentence pairs).
+Hardware: 8 NVIDIA P100 GPUs.
+Schedule: Adam optimizer, β_1=0.9, β_2=0.98, warmup + inverse square-root decay.
+Regularization: Residual dropout p=0.1, label smoothing ε=0.1.
+
+Big model training time: 3.5 days on 8 P100 GPUs.
+
+5. RESULTS
+English-to-German translation:
+  Transformer (big): BLEU 28.4 — exceeds all previous ensembles.
+  
+English-to-French translation:
+  Transformer (big): BLEU 41.0 — new state of the art at 1/4 training cost.
+
+6. CONCLUSION
+The Transformer is the first transduction model relying entirely on self-attention to compute representations of its input and output without using sequence-aligned RNNs or convolution. For translation tasks, the Transformer can be trained significantly faster than architectures based on recurrent or convolutional layers.
+
+Key contributions:
+1. Introduced multi-head self-attention as a core building block.
+2. Demonstrated that recurrence is not necessary for state-of-the-art sequence transduction.
+3. Achieved new BLEU records on WMT 2014 EN-DE and EN-FR.
+4. Enabled far greater training parallelism, reducing training cost dramatically.
+
+LIMITATIONS
+- The model has quadratic complexity w.r.t. sequence length in self-attention.
+- May require more data than RNNs for small datasets.
+- Positional encoding is fixed; relative position encoding can be beneficial.
+
+FUTURE WORK
+- Apply Transformers to images, audio, and video (ViT, Speech Transformer).
+- Investigate local, restricted attention for very long sequences.
+- Make generation less sequential (non-autoregressive Transformers).
