@@ -1,6 +1,6 @@
 # 🔬 ScholarMind — AI Research Paper Assistant
 
-> **Hackathon-winner-grade RAG** for research papers. Powered by **Gemini 2.5 Flash**, **LangChain 1.x**, and **ChromaDB 1.x** — deploy free on Streamlit Community Cloud.
+> **Hackathon-winner-grade RAG** for research papers. Powered by **Gemini 2.0 Flash**, **LangChain 1.x**, and **ChromaDB 1.x** — deploy free on Streamlit Community Cloud.
 
 **Live demo:** `https://your-app.streamlit.app`
 
