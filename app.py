@@ -1,24 +1,29 @@
 """
 ScholarMind — AI Research Paper Assistant
-Gemini 2.5 Flash · LangChain 1.x · ChromaDB 1.x · Streamlit 1.41
+Gemini 2.0 Flash · LangChain 0.3.x · ChromaDB 0.6.x · Streamlit 1.41
 Free deployment: Streamlit Community Cloud
+
+Dependency notes (protobuf-conflict-free stack):
+  langchain 0.3.27 + langchain-community 0.3.31
+  langchain-google-genai 2.1.4  ← uses google-ai-generativelanguage (protobuf<7 OK)
+  chromadb 0.6.3                ← no direct protobuf dependency
+  All three allow protobuf 4.x–6.x → zero conflict
 """
 
-import os, re, io, json, hashlib, tempfile, datetime, textwrap
+import os, re, json, hashlib, tempfile, datetime
 import streamlit as st
 from pathlib import Path
 
-# ── LangChain 1.x imports ──────────────────────────────────────────────────────
+# ── LangChain 0.3.x imports ───────────────────────────────────────────────────
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_classic.chains import RetrievalQA
+from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 
 import plotly.graph_objects as go
-import plotly.express as px
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
@@ -806,7 +811,7 @@ with st.sidebar:
     st.markdown("""
     <div class="logo-wrap">
       <p class="logo-name">Scholar<em>Mind</em></p>
-      <p class="logo-tag">Gemini 2.5 · RAG · Research AI</p>
+      <p class="logo-tag">Gemini 2.0 · RAG · Research AI</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -883,7 +888,7 @@ with st.sidebar:
     show_sources = st.checkbox("Show evidence chunks", value=True)
 
     st.divider()
-    st.markdown('<p style="font-size:10px;color:var(--text3);text-align:center;font-family:var(--font-mono);">Gemini 2.5 Flash · MiniLM-L6-v2<br>LangChain 1.x · ChromaDB 1.x</p>',
+    st.markdown('<p style="font-size:10px;color:var(--text3);text-align:center;font-family:var(--font-mono);">Gemini 2.0 Flash · MiniLM-L6-v2<br>LangChain 1.x · ChromaDB 1.x</p>',
                 unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1010,7 +1015,7 @@ with t_summary:
     elif col_id not in st.session_state.summaries:
         st.markdown('<p style="color:var(--text1);font-size:13px;margin-bottom:12px;">Generate a structured analysis of the paper — problem, method, results, contribution, limitations.</p>', unsafe_allow_html=True)
         if st.button("📋 Analyse Paper", type="primary", key="gen_sum"):
-            with st.spinner("Analysing paper with Gemini 2.5 Flash…"):
+            with st.spinner("Analysing paper with Gemini 2.0 Flash…"):
                 try:
                     _get_summary(col_id, active_meta["vectordb"], api_key)
                     st.rerun()
@@ -1290,7 +1295,7 @@ with t_compare:
         sel_b = st.selectbox("Paper B", opts_b, format_func=lambda x: pmap[x], key="cmp_b")
 
         if st.button("⚖️ Compare Papers", type="primary", use_container_width=True, key="run_cmp"):
-            with st.spinner("Comparing papers with Gemini 2.5 Flash…"):
+            with st.spinner("Comparing papers with Gemini 2.0 Flash…"):
                 try:
                     _get_compare(sel_a, sel_b, api_key)
                     st.rerun()

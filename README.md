@@ -44,15 +44,15 @@ Get a free key at [aistudio.google.com/app/apikey](https://aistudio.google.com/a
 
 ## 🔧 Stack
 
-| Component | Package | Version |
-|---|---|---|
-| Framework | streamlit | 1.41.0 |
-| LLM | gemini-2.0-flash | via langchain-google-genai 4.2.5 |
+| Component | Package          | Version |
+|---|------------------|---|
+| Framework | streamlit        | 1.41.0 |
+| LLM | gemini-2.5-flash | via langchain-google-genai 4.2.5 |
 | Embeddings | all-MiniLM-L6-v2 | sentence-transformers 3.4.1 |
-| Vector DB | ChromaDB | 1.0.21 |
-| RAG | LangChain | 1.3.6 |
-| PDF | pypdf | 6.7.5 |
-| Charts | Plotly | 6.1.0 |
+| Vector DB | ChromaDB         | 1.0.21 |
+| RAG | LangChain        | 1.3.6 |
+| PDF | pypdf            | 6.7.5 |
+| Charts | Plotly           | 6.1.0 |
 
 ## 🆓 Free Hosting Options
 
