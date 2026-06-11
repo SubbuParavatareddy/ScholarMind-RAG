@@ -76,19 +76,31 @@ def _render_msg(msg: dict):
                 f'<div class="src-wrap"><div class="src-title">📎 Evidence · '
                 f'{len(msg["sources"])} chunks</div>{items}</div>'
             )
-        fols = ""
-        if msg.get("follow_ups"):
-            chips = "".join(f'<span class="fol-chip">{q}</span>' for q in msg["follow_ups"])
-            fols = (
-                f'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">'
-                f'<div style="font-size:10px;color:var(--text2);font-family:var(--mono);margin-bottom:5px;">💡 FOLLOW-UPS</div>'
-                f'{chips}</div>'
-            )
         st.markdown(
             f'<div class="row-a"><div class="av av-a">🔬</div>'
-            f'<div class="bub-a">{ans}{_conf_badge(msg.get("confidence","medium"))}{srcs}{fols}</div></div>',
+            f'<div class="bub-a">{ans}{_conf_badge(msg.get("confidence","medium"))}{srcs}</div></div>',
             unsafe_allow_html=True,
         )
+
+
+def _ask(question: str, vs, top_k: int, show_src: bool):
+    """Run a RAG query and append both turns to session state, then rerun."""
+    st.session_state.messages.append({"role": "user", "content": question})
+    with st.spinner("Retrieving evidence · Generating answer…"):
+        try:
+            res = _engine.query(question, vs, top_k)
+            fol = _engine.get_follow_ups(question, res["answer"])
+            st.session_state.messages.append({
+                "role": "assistant", "content": res["answer"],
+                "sources": res["sources"] if show_src else [],
+                "confidence": res["confidence"], "follow_ups": fol,
+            })
+        except Exception as e:
+            st.session_state.messages.append({
+                "role": "assistant", "content": f"⚠️ Error: {e}",
+                "sources": [], "confidence": "low", "follow_ups": [],
+            })
+    st.rerun()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -246,30 +258,48 @@ t_chat, t_sum, t_conc, t_gaps, t_flash, t_cmp, t_exp = st.tabs([
 
 # ── CHAT ───────────────────────────────────────────────────────────────────────
 with t_chat:
+    # Flush messages queued by Concepts / Gaps deep-dive buttons.
+    # Must happen before the render loop so messages are visible in this same pass.
+    if "_pending_msgs" in st.session_state:
+        for _m in st.session_state["_pending_msgs"]:
+            st.session_state.messages.append(_m)
+        del st.session_state["_pending_msgs"]
+
+    chips = [
+        "What is the main contribution?",
+        "Summarize the methodology",
+        "What are the key quantitative results?",
+        "What datasets or benchmarks were used?",
+        "What are the main limitations?",
+        "How does this compare to prior work?",
+    ]
+    c1, c2, c3 = st.columns(3)
+    for i, q in enumerate(chips):
+        if [c1, c2, c3][i % 3].button(q, key=f"chip_{i}", use_container_width=True):
+            _ask(q, active_meta["vectorstore"], top_k, show_src)
+
     for msg in st.session_state.messages:
         _render_msg(msg)
+
+    # Follow-up buttons for the most recent assistant message
+    msgs = st.session_state.messages
+    if msgs and msgs[-1]["role"] == "assistant" and msgs[-1].get("follow_ups"):
+        st.markdown(
+            '<div style="font-size:10px;color:var(--text2);font-family:var(--mono);'
+            'margin:4px 0 6px 40px;">💡 FOLLOW-UPS</div>',
+            unsafe_allow_html=True,
+        )
+        fu_cols = st.columns(len(msgs[-1]["follow_ups"]))
+        for _j, fq in enumerate(msgs[-1]["follow_ups"]):
+            if fu_cols[_j].button(fq, key=f"fu_{len(msgs)}_{_j}", use_container_width=True):
+                _ask(fq, active_meta["vectorstore"], top_k, show_src)
 
     if not api_key:
         st.info("🔑 Configure GOOGLE_API_KEY to enable chat (see sidebar).")
     else:
         question = st.chat_input("Ask anything about this paper…")
         if question:
-            st.session_state.messages.append({"role": "user", "content": question})
-            with st.spinner("Retrieving evidence · Generating answer…"):
-                try:
-                    res = _engine.query(question, active_meta["vectorstore"], top_k)
-                    fol = _engine.get_follow_ups(question, res["answer"])
-                    st.session_state.messages.append({
-                        "role": "assistant", "content": res["answer"],
-                        "sources": res["sources"] if show_src else [],
-                        "confidence": res["confidence"], "follow_ups": fol,
-                    })
-                except Exception as e:
-                    st.session_state.messages.append({
-                        "role": "assistant", "content": f"⚠️ Error: {e}",
-                        "sources": [], "confidence": "low", "follow_ups": [],
-                    })
-            st.rerun()
+            _ask(question, active_meta["vectorstore"], top_k, show_src)
 
     if st.session_state.messages:
         st.button("🗑 Clear chat", key="clr",
@@ -352,26 +382,28 @@ with t_conc:
                 yaxis=dict(gridcolor="rgba(0,0,0,0)"),
             )
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-            st.markdown('<div class="sec-head">Deep-dive</div>', unsafe_allow_html=True)
+            st.markdown('<div class="sec-head">Deep-dive (Results in Chat Tab)</div>', unsafe_allow_html=True)
             dcols = st.columns(3)
             for _i, kw in enumerate(kws[:9]):
                 if dcols[_i % 3].button(f"⚡ {kw}", key=f"kw_{_i}", use_container_width=True):
                     q = f"Explain how '{kw}' is used in this paper."
-                    st.session_state.messages.append({"role": "user", "content": q})
                     with st.spinner(f"Looking up '{kw}'…"):
                         try:
                             res = _engine.query(q, active_meta["vectorstore"], top_k)
-                            st.session_state.messages.append({
-                                "role": "assistant", "content": res["answer"],
-                                "sources": res["sources"] if show_src else [],
-                                "confidence": res["confidence"], "follow_ups": [],
-                            })
+                            _queued = [
+                                {"role": "user", "content": q},
+                                {"role": "assistant", "content": res["answer"],
+                                 "sources": res["sources"] if show_src else [],
+                                 "confidence": res["confidence"], "follow_ups": []},
+                            ]
                         except Exception as e:
-                            st.session_state.messages.append({
-                                "role": "assistant", "content": f"⚠️ {e}",
-                                "sources": [], "confidence": "low", "follow_ups": [],
-                            })
-                    st.info("Answer added to Chat tab ↑")
+                            _queued = [
+                                {"role": "user", "content": q},
+                                {"role": "assistant", "content": f"⚠️ {e}",
+                                 "sources": [], "confidence": "low", "follow_ups": []},
+                            ]
+                    st.session_state["_pending_msgs"] = _queued
+                    st.rerun()
 
 # ── GAPS ───────────────────────────────────────────────────────────────────────
 with t_gaps:
@@ -402,21 +434,23 @@ with t_gaps:
                     if st.button(f"💬 Discuss: {short}", key=f"gap_{_key}_{_j}",
                                  use_container_width=True):
                         q = f"What does the paper say about: '{item}'?"
-                        st.session_state.messages.append({"role": "user", "content": q})
                         with st.spinner("Generating…"):
                             try:
                                 res = _engine.query(q, active_meta["vectorstore"], top_k)
-                                st.session_state.messages.append({
-                                    "role": "assistant", "content": res["answer"],
-                                    "sources": res["sources"] if show_src else [],
-                                    "confidence": res["confidence"], "follow_ups": [],
-                                })
+                                _queued = [
+                                    {"role": "user", "content": q},
+                                    {"role": "assistant", "content": res["answer"],
+                                     "sources": res["sources"] if show_src else [],
+                                     "confidence": res["confidence"], "follow_ups": []},
+                                ]
                             except Exception as e:
-                                st.session_state.messages.append({
-                                    "role": "assistant", "content": f"⚠️ {e}",
-                                    "sources": [], "confidence": "low", "follow_ups": [],
-                                })
-                        st.info("Response added to Chat tab ↑")
+                                _queued = [
+                                    {"role": "user", "content": q},
+                                    {"role": "assistant", "content": f"⚠️ {e}",
+                                     "sources": [], "confidence": "low", "follow_ups": []},
+                                ]
+                        st.session_state["_pending_msgs"] = _queued
+                        st.rerun()
         if st.button("🔄 Regenerate", key="regen_gaps"):
             st.session_state.pop(gap_key, None)
             st.rerun()
