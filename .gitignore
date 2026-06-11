@@ -1,2 +1,6 @@
 # Project exclude paths
 /venv/
+.streamlit/config.toml
+__pycache__/
+*.pyc
+.DS_Store
