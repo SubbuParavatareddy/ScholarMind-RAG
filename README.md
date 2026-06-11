@@ -2,7 +2,7 @@
 
 > Conversational RAG over your research papers. Powered by **Gemini 2.5 Flash**, **LangChain 0.3 (LCEL)**, and a **pure-NumPy vector store** — deploy free on Streamlit Community Cloud.
 
-**Live demo:** `https://your-app.streamlit.app`
+**Live demo:** `https://scholar-mind.streamlit.app`
 
 ---
 
