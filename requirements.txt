@@ -1,26 +1,21 @@
 # ── Framework ──────────────────────────────────────────────────────────────
 streamlit==1.41.0
 
-# ── LangChain 0.3.x stable ecosystem (conflict-free) ──────────────────────
+# ── LangChain 0.3.x — loaders, splitters, LLM only ───────────────────────
 langchain==0.3.27
 langchain-community==0.3.31
 langchain-text-splitters==0.3.9
 langchain-huggingface==0.2.0
-
-# ── Gemini — langchain-google-genai 2.x (uses google-ai-generativelanguage)
-# NOTE: 4.x requires langchain-core>=1.4 which conflicts with langchain 0.3.x
-# 2.1.4 supports gemini-2.5-flash and allows protobuf<7 ─ no conflict
 langchain-google-genai==2.1.4
 
-# ── Vector DB — 0.6.x has NO protobuf dependency ──────────────────────────
-# chromadb 1.x requires protobuf 6.x which conflicts with google's <7 pin
-chromadb==0.6.3
+# ── Embeddings ─────────────────────────────────────────────────────────────
+sentence-transformers==3.4.1
+
+# ── Vector search — pure numpy, no chromadb ───────────────────────────────
+numpy>=1.26.0
 
 # ── PDF ────────────────────────────────────────────────────────────────────
 pypdf==6.7.5
-
-# ── Embeddings (local CPU, zero API cost) ─────────────────────────────────
-sentence-transformers==3.4.1
 
 # ── Charts ─────────────────────────────────────────────────────────────────
 plotly==6.1.0

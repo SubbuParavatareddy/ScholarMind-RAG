@@ -32,7 +32,7 @@
 │  │                  Query Pipeline                       │  │
 │  │  Question → MMR Retriever (k chunks from Chroma)     │  │
 │  │           → RetrievalQA Chain (LangChain)            │  │
-│  │           → Gemini 1.5 Flash (grounded answer)       │  │
+│  │           → Gemini 2.5 Flash (grounded answer)       │  │
 │  │           → Answer + Source Docs → session_state     │  │
 │  └──────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────┘
@@ -50,7 +50,7 @@ Unlike the original FastAPI + React split, the Streamlit version collapses every
 
 ## 2. Component Choices & Reasoning
 
-### LLM: Google Gemini 1.5 Flash
+### LLM: Google Gemini 2.5 Flash
 
 - **Free tier** at [aistudio.google.com](https://aistudio.google.com) — 15 RPM, 1M tokens/day
 - **1M token context window** — handles large retrieved contexts
