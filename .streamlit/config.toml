@@ -8,3 +8,9 @@ font = "sans serif"
 
 [server]
 maxUploadSize = 50
+
+# Local development only — never commit a real key.
+# For Streamlit Cloud deployment, set GOOGLE_API_KEY as a GitHub Secret.
+[secrets]
+GOOGLE_API_KEY = "AIzaSyDNEtlHsSVkGHS-Gkgp7MQOVO6UtDMaNa4"
+GEMINI_API_KEY = "AIzaSyDNEtlHsSVkGHS-Gkgp7MQOVO6UtDMaNa4"
