@@ -1,0 +1,21 @@
+from .templates import (
+    RAG_TEMPLATE,
+    FOLLOW_UP_TEMPLATE,
+    HEDGE_PHRASES,
+    SUMMARY_PROMPT,
+    COMPARE_PROMPT,
+    FLASHCARD_PROMPT,
+    GAP_PROMPT,
+    ELI15_PROMPT,
+)
+
+__all__ = [
+    "RAG_TEMPLATE",
+    "FOLLOW_UP_TEMPLATE",
+    "HEDGE_PHRASES",
+    "SUMMARY_PROMPT",
+    "COMPARE_PROMPT",
+    "FLASHCARD_PROMPT",
+    "GAP_PROMPT",
+    "ELI15_PROMPT",
+]

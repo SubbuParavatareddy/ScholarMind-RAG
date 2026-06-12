@@ -7,7 +7,7 @@ from pathlib import Path
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .vector_store import NumpyVectorStore
+from vectorstore.numpy_store import NumpyVectorStore
 
 
 class DocumentLoader:

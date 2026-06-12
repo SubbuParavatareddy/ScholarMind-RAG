@@ -40,22 +40,40 @@
 
 ```
 ScholarMind-RAG/
-├── app.py                  # Streamlit UI entry point (thin layer)
-├── backend/
-│   ├── config.py           # APIKeyLoader (st.secrets → config.toml fallback)
-│   ├── vector_store.py     # NumpyVectorStore: cosine similarity + MMR
-│   ├── document_loader.py  # PDF/TXT/MD → chunks → embeddings → NumpyVectorStore
-│   ├── rag_engine.py       # LCEL RAG chain + follow-up generation
-│   ├── analysis.py         # PaperAnalyzer: summary, flashcards, gaps, ELI15, compare
-│   └── exporters.py        # Markdown / JSON exporters
+├── app.py                          # Streamlit UI entry point (thin layer)
+├── config.py                       # APIKeyLoader (st.secrets → config.toml fallback)
+│
+├── ingestion/
+│   └── document_loader.py          # PDF/TXT/MD → chunks → embeddings → NumpyVectorStore
+│
+├── vectorstore/
+│   └── numpy_store.py              # NumpyVectorStore: cosine similarity + MMR (pure NumPy)
+│
+├── retrieval/
+│   └── rag_engine.py               # LCEL RAG chain + confidence scoring + follow-up generation
+│
+├── analysis/
+│   └── paper_analyzer.py           # Summary, flashcards, gaps, ELI15, paper comparison
+│
+├── prompts/
+│   └── templates.py                # All LLM prompt strings (single source of truth)
+│
+├── utils/
+│   └── exporters.py                # Chat → .md, Summary → .md
+│
+├── tests/
+│   ├── test_numpy_store.py         # 5 unit tests (no API key)
+│   ├── test_document_loader.py     # 3 unit tests (mock embedder)
+│   └── test_rag_engine.py          # 3 unit tests (mock LLM)
+│
 ├── frontend/
-│   └── styles.css          # Custom dark-theme CSS (injected via st.markdown)
+│   └── styles.css                  # Custom dark-theme CSS (injected via st.markdown)
 ├── .streamlit/
-│   └── config.toml         # Theme + server config + local [secrets] (gitignored)
+│   └── config.toml                 # Theme + server config + local [secrets] (gitignored)
 ├── docs/
-│   └── REPORT.md           # Full technical report
+│   └── REPORT.md                   # Full technical report
 ├── requirements.txt
-└── runtime.txt             # python-3.12
+└── runtime.txt                     # python-3.12
 ```
 
 ---
@@ -82,19 +100,12 @@ Get a free key at [aistudio.google.com/app/apikey](https://aistudio.google.com/a
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Add your API key to .streamlit/config.toml
+# 2. Add your API key to .streamlit/secrets.toml
 #    (create the file if it doesn't exist — it is gitignored)
 ```
 
-`.streamlit/config.toml`:
+`.streamlit/secrets.toml`:
 ```toml
-[theme]
-base = "dark"
-
-[server]
-maxUploadSize = 50
-
-[secrets]
 GOOGLE_API_KEY = "your-key-here"
 ```
 

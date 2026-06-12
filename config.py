@@ -28,12 +28,12 @@ class APIKeyLoader:
         except Exception:
             pass
 
-        # 2. Local: .streamlit/config.toml [secrets] section
-        config_path = Path(".streamlit/config.toml")
-        if config_path.exists():
-            with open(config_path, "rb") as f:
+        # 2. Local: .streamlit/secrets.toml (Streamlit's dedicated secrets file)
+        secrets_path = Path(".streamlit/secrets.toml")
+        if secrets_path.exists():
+            with open(secrets_path, "rb") as f:
                 cfg = tomllib.load(f)
-            val = cfg.get("secrets", {}).get(cls.KEY_NAME, "")
+            val = cfg.get(cls.KEY_NAME, "")
             if val:
                 return val
 

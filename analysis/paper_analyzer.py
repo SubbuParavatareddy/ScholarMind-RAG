@@ -2,37 +2,15 @@ from __future__ import annotations
 import re
 import json
 
-from .vector_store import NumpyVectorStore
-from .rag_engine import RAGEngine
-
-_SUMMARY_PROMPT = """Analyze this research paper and return a JSON object with keys:
-"one_liner","problem","method","results","contribution","limitations",
-"keywords"(array 8-10),"paper_type"(empirical/theoretical/survey/system/position),
-"venue_guess","year_guess".
-Return ONLY valid JSON, no markdown fences.
-
-Excerpt:\n{ctx}"""
-
-_COMPARE_PROMPT = """Compare two papers. Return JSON:
-"a_contribution","b_contribution","similarities"(array 3),"differences"(array 4),
-"complementary","read_order","a_strength","b_strength".
-Return ONLY valid JSON.
-
-Paper A ({na}):\n{ca}\n\nPaper B ({nb}):\n{cb}"""
-
-_FLASHCARD_PROMPT = """Make 6 study flashcards. Return JSON array of {{"q":...,"a":...}}.
-Return ONLY valid JSON array, no markdown fences.
-
-Paper:\n{ctx}"""
-
-_GAP_PROMPT = """Find research gaps. Return JSON:
-"explicit_gaps"(array 3-4),"implicit_gaps"(array 3-4),
-"future_directions"(array 3-4),"open_questions"(array 3-4).
-Return ONLY valid JSON.
-
-Paper:\n{ctx}"""
-
-_ELI15_PROMPT = "Explain this paper to a curious 15-year-old. Max 180 words.\n\nPaper:\n{ctx}"
+from vectorstore.numpy_store import NumpyVectorStore
+from retrieval.rag_engine import RAGEngine
+from prompts.templates import (
+    SUMMARY_PROMPT,
+    COMPARE_PROMPT,
+    FLASHCARD_PROMPT,
+    GAP_PROMPT,
+    ELI15_PROMPT,
+)
 
 
 class PaperAnalyzer:
@@ -72,7 +50,7 @@ class PaperAnalyzer:
         summaries = self._ensure("summaries", {})
         if col_id not in summaries:
             try:
-                data = self._llm_json(_SUMMARY_PROMPT.format(ctx=self._sample(vs)))
+                data = self._llm_json(SUMMARY_PROMPT.format(ctx=self._sample(vs)))
                 summaries[col_id] = data if isinstance(data, dict) else {}
             except Exception as e:
                 summaries[col_id] = {"one_liner": f"Summary error: {e}"}
@@ -82,7 +60,7 @@ class PaperAnalyzer:
         key = f"fc_{col_id}"
         if key not in self._cache:
             try:
-                data = self._llm_json(_FLASHCARD_PROMPT.format(ctx=self._sample(vs)), temp=0.3)
+                data = self._llm_json(FLASHCARD_PROMPT.format(ctx=self._sample(vs)), temp=0.3)
                 self._cache[key] = data if isinstance(data, list) else []
             except Exception:
                 self._cache[key] = []
@@ -95,7 +73,7 @@ class PaperAnalyzer:
             mid = len(texts) // 2
             ctx = "\n\n".join(texts[mid:] + texts[-4:])[:5500]
             try:
-                data = self._llm_json(_GAP_PROMPT.format(ctx=ctx))
+                data = self._llm_json(GAP_PROMPT.format(ctx=ctx))
                 self._cache[key] = data if isinstance(data, dict) else {}
             except Exception:
                 self._cache[key] = {}
@@ -105,7 +83,7 @@ class PaperAnalyzer:
         key = f"eli15_{col_id}"
         if key not in self._cache:
             ctx = "\n\n".join(vs.get_all_texts()[:6])[:4000]
-            raw = self._rag.llm(temp=0.5).invoke(_ELI15_PROMPT.format(ctx=ctx))
+            raw = self._rag.llm(temp=0.5).invoke(ELI15_PROMPT.format(ctx=ctx))
             self._cache[key] = raw.content if hasattr(raw, "content") else str(raw)
         return self._cache[key]
 
@@ -119,7 +97,7 @@ class PaperAnalyzer:
             ca = "\n\n".join(ma["vectorstore"].get_all_texts()[:8])[:3000]
             cb = "\n\n".join(mb["vectorstore"].get_all_texts()[:8])[:3000]
             try:
-                data = self._llm_json(_COMPARE_PROMPT.format(
+                data = self._llm_json(COMPARE_PROMPT.format(
                     na=ma["filename"], ca=ca, nb=mb["filename"], cb=cb))
                 compare_cache[key] = data if isinstance(data, dict) else {}
             except Exception:

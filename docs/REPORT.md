@@ -26,27 +26,27 @@
 │                                   └──────────────────────────┘   │
 └──────────────────────────┬──────────────────────────────────────┘
                             │ imports
-┌──────────────────────────▼──────────────────────────────────────┐
-│                      backend/  (logic layer)                      │
-│                                                                   │
-│  ┌────────────────┐  ┌──────────────────┐  ┌────────────────┐   │
-│  │  APIKeyLoader  │  │  DocumentLoader  │  │ NumpyVector    │   │
-│  │                │  │                  │  │ Store          │   │
-│  │ st.secrets     │  │ PDF / TXT / MD   │  │                │   │
-│  │ config.toml    │  │ → chunks         │  │ Cosine sim     │   │
-│  │ [secrets]      │  │ → embeddings     │  │ MMR retrieval  │   │
-│  └────────────────┘  │ → NumpyVS        │  │ NumPy only     │   │
-│                       └──────────────────┘  └────────────────┘   │
-│  ┌────────────────┐  ┌──────────────────┐  ┌────────────────┐   │
-│  │   RAGEngine    │  │  PaperAnalyzer   │  │   Exporter     │   │
-│  │                │  │                  │  │                │   │
-│  │ embed query    │  │ get_summary()    │  │ chat → .md     │   │
-│  │ MMR search     │  │ get_flashcards() │  │ summary → .md  │   │
-│  │ LCEL chain     │  │ get_gaps()       │  │ session → .json│   │
-│  │ get_follow_ups │  │ get_eli15()      │  └────────────────┘   │
-│  └────────────────┘  │ get_compare()    │                        │
-│                       └──────────────────┘                        │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────┬──────────────┬──────────────┬──────────────────────┐
+│  config.py   │ ingestion/   │ vectorstore/ │   retrieval/         │
+│              │              │              │                      │
+│ APIKeyLoader │ Document     │ NumpyVector  │ RAGEngine            │
+│              │ Loader       │ Store        │                      │
+│ st.secrets   │ PDF/TXT/MD   │ Cosine sim   │ embed query          │
+│ ↓            │ → chunks     │ MMR search   │ MMR search           │
+│ config.toml  │ → embeddings │ Pure NumPy   │ LCEL chain           │
+│ [secrets]    │ → NumpyVS    │ No SQLite    │ get_follow_ups()     │
+└──────────────┴──────────────┴──────────────┴──────────────────────┘
+┌──────────────┬──────────────┬──────────────┬──────────────────────┐
+│  analysis/   │  prompts/    │  utils/      │  tests/              │
+│              │              │              │                      │
+│ PaperAnalyzer│ templates.py │ Exporter     │ test_numpy_store     │
+│              │              │              │ test_document_loader │
+│ get_summary()│ RAG_TEMPLATE │ chat → .md   │ test_rag_engine      │
+│ flashcards() │ SUMMARY_     │ summary→ .md │                      │
+│ get_gaps()   │ PROMPT etc.  │              │ 11 tests, no API key │
+│ get_eli15()  │ HEDGE_PHRASES│              │                      │
+│ get_compare()│              │              │                      │
+└──────────────┴──────────────┴──────────────┴──────────────────────┘
                             │
 ┌──────────────────────────▼──────────────────────────────────────┐
 │                      frontend/                                    │
@@ -138,24 +138,48 @@ User question
 
 ```
 ScholarMind-RAG/
-├── app.py                      # Streamlit entry point (UI only)
-├── backend/
-│   ├── __init__.py             # Re-exports all public classes
-│   ├── config.py               # APIKeyLoader
-│   ├── vector_store.py         # NumpyVectorStore (cosine + MMR)
-│   ├── document_loader.py      # DocumentLoader.ingest()
-│   ├── rag_engine.py           # RAGEngine (query, get_follow_ups)
-│   ├── analysis.py             # PaperAnalyzer (summary, gaps, flashcards, ELI15, compare)
-│   └── exporters.py            # Exporter (chat→md, summary→md)
+├── app.py                          # Streamlit entry point (UI only)
+├── config.py                       # APIKeyLoader (st.secrets → config.toml fallback)
+│
+├── ingestion/
+│   ├── __init__.py
+│   └── document_loader.py          # DocumentLoader: PDF/TXT/MD → chunks → NumpyVectorStore
+│
+├── vectorstore/
+│   ├── __init__.py
+│   └── numpy_store.py              # NumpyVectorStore: cosine similarity + MMR (pure NumPy)
+│
+├── retrieval/
+│   ├── __init__.py
+│   └── rag_engine.py               # RAGEngine: LCEL chain, query(), get_follow_ups()
+│
+├── analysis/
+│   ├── __init__.py
+│   └── paper_analyzer.py           # PaperAnalyzer: summary, flashcards, gaps, ELI15, compare
+│
+├── prompts/
+│   ├── __init__.py
+│   └── templates.py                # All LLM prompt strings and HEDGE_PHRASES constant
+│
+├── utils/
+│   ├── __init__.py
+│   └── exporters.py                # Exporter: chat→.md, summary→.md
+│
+├── tests/
+│   ├── __init__.py
+│   ├── test_numpy_store.py         # 5 unit tests (no API key needed)
+│   ├── test_document_loader.py     # 3 unit tests (mock embedder)
+│   └── test_rag_engine.py          # 3 unit tests (mock LLM)
+│
 ├── frontend/
-│   └── styles.css              # All CSS (injected via st.markdown)
+│   └── styles.css                  # All CSS (injected via st.markdown)
 ├── .streamlit/
-│   └── config.toml             # Theme + server config + [secrets] for local API key
-├── data/                       # Sample paper summaries for testing
+│   └── config.toml                 # Theme + server config + [secrets] for local API key
+├── data/                           # Sample paper summaries for testing
 ├── docs/
-│   └── REPORT.md               # This file
+│   └── REPORT.md                   # This file
 ├── requirements.txt
-└── runtime.txt                 # python-3.12
+└── runtime.txt                     # python-3.12
 ```
 
 ---
@@ -164,10 +188,10 @@ ScholarMind-RAG/
 
 | Environment | Where to set | Key name |
 |---|---|---|
-| **Local development** | `.streamlit/config.toml` under `[secrets]` | `GOOGLE_API_KEY` |
+| **Local development** | `.streamlit/secrets.toml` (root key) | `GOOGLE_API_KEY` |
 | **Streamlit Cloud** | Repo Settings → Secrets (GitHub Secrets) | `GOOGLE_API_KEY` |
 
-`APIKeyLoader.load()` checks `st.secrets` first (works on Cloud), then falls back to parsing `config.toml` directly via `tomllib` (Python 3.11+ stdlib).
+`APIKeyLoader.load()` checks `st.secrets` first (works on Cloud and local when Streamlit auto-loads `secrets.toml`), then falls back to parsing `.streamlit/secrets.toml` directly via `tomllib` (Python 3.11+ stdlib) — useful when running outside of Streamlit context (e.g., tests, scripts).
 
 ---
 

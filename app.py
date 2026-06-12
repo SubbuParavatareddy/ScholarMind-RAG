@@ -9,7 +9,11 @@ from pathlib import Path
 
 import streamlit as st
 
-from backend import DocumentLoader, RAGEngine, PaperAnalyzer, Exporter, APIKeyLoader
+from config import APIKeyLoader
+from ingestion import DocumentLoader
+from retrieval import RAGEngine
+from analysis import PaperAnalyzer
+from utils import Exporter
 
 # ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
